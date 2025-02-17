@@ -21,10 +21,14 @@ app.add_middleware(
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', '4s_model.pkl')
 try:
     model = joblib.load(MODEL_PATH)
+    if hasattr(model, 'missing_go_to_left'):
+        # 古い属性を削除
+        delattr(model, 'missing_go_to_left')
     print(f"Model type: {type(model)}")
     print(f"Model attributes: {dir(model)}")
 except Exception as e:
     print(f"Error loading model: {str(e)}")
+    raise  # エラーを再度発生させて、アプリケーションを停止
 
 # 特徴量抽出関数を4電極用に戻す
 def extract_features(data):
