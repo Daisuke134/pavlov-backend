@@ -5,7 +5,6 @@ import numpy as np
 import joblib
 import os
 import time
-import sklearn
 
 app = FastAPI()
 
@@ -23,16 +22,9 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', '4s_model.pkl')
 try:
     model = joblib.load(MODEL_PATH)
     print(f"Model type: {type(model)}")
-    print(f"Model version: {joblib.__version__}")
-    print(f"Scikit-learn version: {sklearn.__version__}")
-    
-    # シンプルなテスト予測
-    test_features = np.zeros(80)  # 80次元のテスト特徴量
-    test_prediction = model.predict(test_features.reshape(1, -1))
-    print(f"Test prediction successful: {test_prediction}")
+    print(f"Model attributes: {dir(model)}")
 except Exception as e:
-    print(f"Error loading or testing model: {str(e)}")
-    raise e
+    print(f"Error loading model: {str(e)}")
 
 # 特徴量抽出関数を4電極用に戻す
 def extract_features(data):
@@ -90,32 +82,27 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 data = await websocket.receive_json()
                 print(f"Received data from {client_host} at {time.strftime('%H:%M:%S')}")
-                print(f"Data shape: {len(data['eegData'])} bands, {len(data['eegData'][0])} samples")
                 
                 try:
                     features = extract_features(data['eegData'])
-                    print(f"Extracted features shape: {len(features)}")
                     prediction = int(model.predict([features])[0])
                     print(f"Prediction successful: {prediction}")
-                    
                     response = {"prediction": prediction}
                     print(f"Sending response: {response}")
                     await websocket.send_json(response)
-                    print("Response sent successfully")
-                    
+                    print(f"Response sent successfully")
                 except Exception as e:
                     print(f"Prediction error: {str(e)}")
-                    print(f"Features: {features[:10]}...")  # 最初の10個の特徴量を表示
+                    print(f"Features shape: {len(features) if features else 'No features'}")
                     continue
                 
             except WebSocketDisconnect:
                 print(f"Client {client_host} disconnected")
                 break
             except Exception as e:
-                print(f"Error processing data: {str(e)}")
-                print(f"Raw data: {data}")  # 受信データの内容を表示
+                print(f"Error processing data from {client_host}: {str(e)}")
                 continue
     except Exception as e:
-        print(f"WebSocket error: {str(e)}")
+        print(f"WebSocket error with {client_host}: {str(e)}")
     finally:
-        print(f"WebSocket connection closed") 
+        print(f"WebSocket connection closed for {client_host}") 
