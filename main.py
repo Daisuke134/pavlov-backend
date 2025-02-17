@@ -23,8 +23,14 @@ try:
     model = joblib.load(MODEL_PATH)
     print(f"Model type: {type(model)}")
     print(f"Model attributes: {dir(model)}")
+    
+    # モデルのテスト予測を実行
+    test_features = [0.0] * 80  # 80次元のテスト特徴量
+    test_prediction = model.predict([test_features])
+    print(f"Test prediction successful: {test_prediction}")
 except Exception as e:
-    print(f"Error loading model: {str(e)}")
+    print(f"Error loading or testing model: {str(e)}")
+    raise e
 
 # 特徴量抽出関数を4電極用に戻す
 def extract_features(data):
@@ -82,23 +88,32 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 data = await websocket.receive_json()
                 print(f"Received data from {client_host} at {time.strftime('%H:%M:%S')}")
+                print(f"Data shape: {len(data['eegData'])} bands, {len(data['eegData'][0])} samples")
                 
                 try:
                     features = extract_features(data['eegData'])
+                    print(f"Extracted features shape: {len(features)}")
                     prediction = int(model.predict([features])[0])
                     print(f"Prediction successful: {prediction}")
-                    await websocket.send_json({"prediction": prediction})
+                    
+                    response = {"prediction": prediction}
+                    print(f"Sending response: {response}")
+                    await websocket.send_json(response)
+                    print("Response sent successfully")
+                    
                 except Exception as e:
                     print(f"Prediction error: {str(e)}")
+                    print(f"Features: {features[:10]}...")  # 最初の10個の特徴量を表示
                     continue
                 
             except WebSocketDisconnect:
                 print(f"Client {client_host} disconnected")
                 break
             except Exception as e:
-                print(f"Error processing data from {client_host}: {str(e)}")
+                print(f"Error processing data: {str(e)}")
+                print(f"Raw data: {data}")  # 受信データの内容を表示
                 continue
     except Exception as e:
-        print(f"WebSocket error with {client_host}: {str(e)}")
+        print(f"WebSocket error: {str(e)}")
     finally:
-        print(f"WebSocket connection closed for {client_host}") 
+        print(f"WebSocket connection closed") 
