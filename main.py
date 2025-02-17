@@ -19,7 +19,12 @@ app.add_middleware(
 
 # モデルを読み込み
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', '4s_model.pkl')
-model = joblib.load(MODEL_PATH)
+try:
+    model = joblib.load(MODEL_PATH)
+    print(f"Model type: {type(model)}")
+    print(f"Model attributes: {dir(model)}")
+except Exception as e:
+    print(f"Error loading model: {str(e)}")
 
 # 特徴量抽出関数を4電極用に戻す
 def extract_features(data):
@@ -78,11 +83,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 data = await websocket.receive_json()
                 print(f"Received data from {client_host} at {time.strftime('%H:%M:%S')}")
                 
-                features = extract_features(data['eegData'])
-                prediction = model.predict([features])[0]
-                
-                print(f"Sending prediction {prediction} to {client_host}")
-                await websocket.send_json({"prediction": int(prediction)})
+                try:
+                    features = extract_features(data['eegData'])
+                    prediction = int(model.predict([features])[0])
+                    print(f"Prediction successful: {prediction}")
+                    await websocket.send_json({"prediction": prediction})
+                except Exception as e:
+                    print(f"Prediction error: {str(e)}")
+                    continue
                 
             except WebSocketDisconnect:
                 print(f"Client {client_host} disconnected")
