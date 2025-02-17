@@ -10,7 +10,10 @@ app = FastAPI()
 # CORS設定を更新
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本番環境では具体的なオリジンを指定する
+    allow_origins=[
+        "https://pavlovian-az3f6xn1a-daisukes-projects-f8dc7648.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,30 +39,25 @@ def extract_features(data):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    print("New WebSocket connection")
-    await websocket.accept()
-    
-    while True:
-        try:
-            data = await websocket.receive_json()
-            start_time = time.time()
-            
-            # データ形状を確認
-            print(f"Received data at {time.strftime('%H:%M:%S')}:")
-            print(f"Samples per band: {len(data['eegData'][0])}")
-            print(f"Expected: 40 samples (4秒 × 10Hz)")
-            
-            # 特徴量抽出と予測を実行
-            features = extract_features(data['eegData'])
-            prediction = model.predict([features])[0]
-            
-            # 処理時間を計測
-            process_time = time.time() - start_time
-            print(f"Processing time: {process_time*1000:.2f}ms")
-            print(f"Prediction result: {prediction}")
-            
-            await websocket.send_json({"prediction": int(prediction)})
-            
-        except Exception as e:
-            print(f"Error in WebSocket connection: {e}")
-            break 
+    print("New WebSocket connection attempt")
+    try:
+        await websocket.accept()
+        print("WebSocket connection accepted")
+        
+        while True:
+            try:
+                data = await websocket.receive_json()
+                print(f"Received data at {time.strftime('%H:%M:%S')}")
+                
+                # 特徴量抽出と予測を実行
+                features = extract_features(data['eegData'])
+                prediction = model.predict([features])[0]
+                
+                print(f"Sending prediction: {prediction}")
+                await websocket.send_json({"prediction": int(prediction)})
+                
+            except Exception as e:
+                print(f"Error in WebSocket connection: {str(e)}")
+                break
+    except Exception as e:
+        print(f"Error accepting WebSocket connection: {str(e)}") 
