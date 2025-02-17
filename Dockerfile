@@ -11,14 +11,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# モデルファイルのディレクトリを作成
-RUN mkdir -p models
-
-# モデルファイルをコピー
-COPY models/4s_model.pkl models/
-
-# アプリケーションコードをコピー
-COPY main.py .
+# アプリケーションコードとモデルをコピー
+COPY . .
 
 EXPOSE 8000
 
