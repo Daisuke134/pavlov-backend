@@ -7,10 +7,10 @@ import time
 
 app = FastAPI()
 
-# CORS設定
+# CORS設定を更新
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 本番環境では具体的なオリジンを指定する
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
