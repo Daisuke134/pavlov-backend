@@ -5,6 +5,7 @@ import numpy as np
 import joblib
 import os
 import time
+import sklearn
 
 app = FastAPI()
 
@@ -22,11 +23,12 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', '4s_model.pkl')
 try:
     model = joblib.load(MODEL_PATH)
     print(f"Model type: {type(model)}")
-    print(f"Model attributes: {dir(model)}")
+    print(f"Model version: {joblib.__version__}")
+    print(f"Scikit-learn version: {sklearn.__version__}")
     
-    # モデルのテスト予測を実行
-    test_features = [0.0] * 80  # 80次元のテスト特徴量
-    test_prediction = model.predict([test_features])
+    # シンプルなテスト予測
+    test_features = np.zeros(80)  # 80次元のテスト特徴量
+    test_prediction = model.predict(test_features.reshape(1, -1))
     print(f"Test prediction successful: {test_prediction}")
 except Exception as e:
     print(f"Error loading or testing model: {str(e)}")
